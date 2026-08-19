@@ -184,3 +184,11 @@ the test suite encodes the exact findings, exit codes, CBOM and SARIF shapes it 
 reproduce.
 
 See [RELEASE.md](RELEASE.md) for how releases are built and signed.
+
+## License
+
+Apache-2.0 — see [LICENSE](LICENSE). Permissive, with an explicit patent grant.
+
+The scanner is free under this license, permanently. What a commercial license buys is
+rule-pack *updates* and the refreshed CMVP feed, described in
+[LICENSING.md](LICENSING.md); it is not a grant of rights over this code.
