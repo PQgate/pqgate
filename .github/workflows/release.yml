@@ -57,11 +57,16 @@ jobs:
           printf '%s' "$SIGNING_PUB" | base64 -d > .pqgate-keys/evidence.pub
 
       - name: Build artifacts
+        id: build
         run: |
           if [ -f .pqgate-keys/evidence.pub ]; then
             python scripts/release.py --version "${{ steps.v.outputs.version }}"
+            echo "signing=Rule packs are signed with the PQgate release key (ML-DSA-87, FIPS 204). Pin it with \`pqgate keys trust\`." >> "$GITHUB_OUTPUT"
           else
             python scripts/release.py --version "${{ steps.v.outputs.version }}" --unsigned
+            # Say it on the release page. A tool that sells evidence integrity does not
+            # get to leave the signing status of its own artifacts to inference.
+            echo "signing=**This release is unsigned.** No release signing key was configured, so the rule packs carry no signature and \`--require-signed\` will reject them. Verify the SHA-256 below instead." >> "$GITHUB_OUTPUT"
           fi
 
       - name: Publish
@@ -91,6 +96,15 @@ jobs:
             tar -xzf pqgate-${{ steps.v.outputs.version }}.tar.gz
             ```
 
-            Discovery is free, permanently. Rule-pack *updates* need a license;
-            the packs in this release keep working forever without one.
+            ## Integrity
+
+            ${{ steps.build.outputs.signing }}
+
+            Every artifact below is published with its SHA-256. The Action verifies the
+            checksum before it runs anything.
+
+            ## Licensing
+
+            Apache-2.0. Discovery is free, permanently. Rule-pack *updates* need a
+            license; the packs in this release keep working forever without one.
             PQforge is provisioned by us — it is not self-serve.
