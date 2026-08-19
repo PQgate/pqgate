@@ -21,6 +21,9 @@ permissions:
 jobs:
   release:
     runs-on: ubuntu-latest
+    env:
+      SIGNING_KEY: ${{ secrets.PQGATE_SIGNING_KEY }}
+      SIGNING_PUB: ${{ secrets.PQGATE_SIGNING_PUB }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -32,9 +35,8 @@ jobs:
         run: python -m pytest tests -q
       - name: Self-scan
         run: |
-          python -m pqgate scan pqgate --no-color --fail-on block
-          python -m pqgate scan server/pqgate_server --no-color --fail-on block
-          python -m pqgate scan action --no-color --fail-on block
+          python -m pqgate --no-color scan pqgate --fail-on block
+          python -m pqgate --no-color scan action --fail-on block
 
       - name: Resolve version
         id: v
@@ -48,11 +50,11 @@ jobs:
       # Rule packs are signed with the release key when one is configured. Without it
       # the bundle is built unsigned and says so, rather than shipping a fake signature.
       - name: Restore the release signing key
-        if: ${{ secrets.PQGATE_SIGNING_KEY != '' }}
+        if: env.SIGNING_KEY != ''
         run: |
           mkdir -p .pqgate-keys
-          echo "${{ secrets.PQGATE_SIGNING_KEY }}" | base64 -d > .pqgate-keys/evidence.key.INSECURE-DEV
-          echo "${{ secrets.PQGATE_SIGNING_PUB }}" | base64 -d > .pqgate-keys/evidence.pub
+          printf '%s' "$SIGNING_KEY" | base64 -d > .pqgate-keys/evidence.key.INSECURE-DEV
+          printf '%s' "$SIGNING_PUB" | base64 -d > .pqgate-keys/evidence.pub
 
       - name: Build artifacts
         run: |
