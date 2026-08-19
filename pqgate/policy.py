@@ -103,9 +103,12 @@ def _match_policy(finding, match):
 
 
 def match_paths(path, patterns):
-    norm = str(path).replace(os.sep, "/")
+    # Normalise backslashes explicitly rather than via os.sep. Using os.sep makes this
+    # platform-dependent: a Windows-style path would match on Windows and silently fail
+    # to match on the Linux runner that actually gates the merge.
+    norm = str(path).replace("\\", "/")
     for pat in patterns:
-        pat = str(pat).replace(os.sep, "/")
+        pat = str(pat).replace("\\", "/")
         if fnmatch.fnmatch(norm, pat) or fnmatch.fnmatch(norm, "*/" + pat.lstrip("/")):
             return True
         # `legacy/**` should also match `legacy/x.py` and `demo-repo/legacy/x.py`

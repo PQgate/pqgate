@@ -31,7 +31,7 @@ Exit codes: `0` pass · `1` gate blocked · `2` error — usable in any CI syste
 
 ## Gate a repository
 
-Add `.github/workflows/pqgate.yml`:
+Copy [`examples/github-actions.yml`](examples/github-actions.yml) to `.github/workflows/pqgate.yml`:
 
 ```yaml
 name: Crypto Compliance Gate

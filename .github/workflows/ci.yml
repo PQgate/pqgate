@@ -37,11 +37,11 @@ jobs:
       # Over shipped source only. tests/ and demo-repo/ hold deliberately vulnerable
       # fixtures - they are supposed to trigger every rule, and the suite asserts it.
       - run: |
-          python -m pqgate scan pqgate --no-color --sarif scanner.sarif --fail-on block
-          python -m pqgate scan action --no-color --sarif action.sarif  --fail-on block
+          python -m pqgate --no-color scan pqgate --sarif scanner.sarif --fail-on block
+          python -m pqgate --no-color scan action --sarif action.sarif  --fail-on block
       # Under the FIPS profile the development signing backend blocks, as it should.
       # Recorded, not enforced: the audited path needs a native liboqs build.
-      - run: python -m pqgate scan pqgate --no-color --profile fips-140-3 --fail-on never
+      - run: python -m pqgate --no-color scan pqgate --profile fips-140-3 --fail-on never
       - uses: github/codeql-action/upload-sarif@v3
-        if: always()
+        if: always() && hashFiles('scanner.sarif') != ''
         with: { sarif_file: scanner.sarif }

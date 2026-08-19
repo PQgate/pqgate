@@ -169,3 +169,18 @@ def test_push_failure_does_not_mask_gate_result(capsys):
     assert run("scan", DEMO, "--push", "http://127.0.0.1:9", "--token", "x") == EXIT_BLOCKED
     captured = capsys.readouterr()
     assert "PUSH  -> FAILED" in captured.err
+
+
+def test_global_flags_accepted_after_the_subcommand():
+    """`pqgate scan . --no-color` must work, not just `pqgate --no-color scan .`.
+
+    argparse puts global options before the subcommand, but nobody types them there.
+    Our own CI workflow was written the natural way and failed with "unrecognized
+    arguments" - a flag that only works in one position is a defect, not a convention.
+    """
+    from pqgate.cli import build_parser
+    ap = build_parser()
+    for argv in (["--no-color", "scan", "."], ["scan", ".", "--no-color"]):
+        assert getattr(ap.parse_args(argv), "no_color") is True, argv
+    # ...and absent means absent, in either arrangement.
+    assert getattr(ap.parse_args(["scan", "."]), "no_color") is False

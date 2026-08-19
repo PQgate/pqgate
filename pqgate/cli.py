@@ -270,13 +270,30 @@ def cmd_profiles(args):
 
 # --------------------------------------------------------------------------
 def build_parser():
+    # Flags accepted either before or after the subcommand. argparse would otherwise
+    # let the subparser's default clobber a value given globally, so the shared copy
+    # defaults to SUPPRESS and simply does not set the attribute when absent.
+    common = argparse.ArgumentParser(add_help=False)
+    common.add_argument("--no-color", action="store_true", default=argparse.SUPPRESS,
+                        help="disable ANSI colors")
+    common.add_argument("--profiles-dir", default=argparse.SUPPRESS,
+                        help="directory of custom profile YAML files")
+
     ap = argparse.ArgumentParser(prog="pqgate",
                                  description="CNSA 2.0 crypto-compliance gate")
     ap.add_argument("--version", action="version", version="pqgate " + VERSION)
     ap.add_argument("--no-color", action="store_true", help="disable ANSI colors")
     ap.add_argument("--profiles-dir", default=os.environ.get("PQGATE_PROFILES"),
                     help="directory of custom profile YAML files")
-    sub = ap.add_subparsers(dest="cmd", required=True)
+    sub = ap.add_subparsers(dest="cmd", required=True, parser_class=argparse.ArgumentParser)
+
+    _add_parser = sub.add_parser
+
+    def add_parser(name, **kw):
+        kw.setdefault("parents", [common])
+        return _add_parser(name, **kw)
+
+    sub.add_parser = add_parser
 
     s = sub.add_parser("scan", help="scan a directory and evaluate policy")
     s.add_argument("path")

@@ -1,4 +1,7 @@
-# Example customer workflow — copy into your repo.
+# Example customer workflow. Copy this into your own repository as
+# .github/workflows/pqgate.yml — it deliberately does not live under .github/
+# here, because a file in that directory is a workflow GitHub *runs*, not an
+# example it displays.
 name: Crypto Compliance Gate
 on:
   pull_request:
@@ -20,15 +23,16 @@ jobs:
         if: github.event_name == 'pull_request'
         run: |
           git worktree add /tmp/base "origin/${{ github.base_ref }}"
-          python3 -m pqgate scan /tmp/base --no-color --fail-on never \
+          python3 -m pqgate --no-color scan /tmp/base --fail-on never \
             --cbom "$RUNNER_TEMP/baseline-cbom.json" || true
 
-      - uses: pqgate/scan-action@v1     # in-repo during Phase 1: ./action
+      - uses: PQgate/pqgate/action@v0.5.0
         with:
           policy: .pqgate.yml
           fail-on: block
           diff-base: ${{ github.event_name == 'pull_request' && format('origin/{0}', github.base_ref) || '' }}
           baseline-cbom: ${{ runner.temp }}/baseline-cbom.json
-          version: 0.3.0
-          checksum: ''            # set to the release SHA-256 once published
+          version: 0.5.0
+          # From the release SHA256SUMS. Leave empty to skip verification.
+          checksum: ''
           download-url: ''        # or your internal mirror

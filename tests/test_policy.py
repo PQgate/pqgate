@@ -254,3 +254,15 @@ def test_default_policy_is_not_mutated(tmp_path):
         {"id": "x", "match": {"algorithm": "RSA"}, "action": "warn"}]}))
     fresh = load_policy(None)
     assert fresh["policies"] == []
+
+
+def test_match_paths_is_platform_independent():
+    """A backslash path must match on Linux too.
+
+    match_paths normalised with os.sep, so an exception authored on Windows matched
+    there and silently stopped matching on the Linux runner that gates the merge -
+    the finding would block, with nothing pointing at why.
+    """
+    assert match_paths(r"demo-repo\legacy\payments.py", ["legacy/**"]) is True
+    assert match_paths("demo-repo/legacy/payments.py", ["legacy/**"]) is True
+    assert match_paths("app/keys.py", ["legacy/**"]) is False
