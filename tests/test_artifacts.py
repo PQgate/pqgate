@@ -277,3 +277,37 @@ def test_report_with_controls_still_attests():
     doc = build_cbom([sc12_finding()], ".", "cnsa-2.0")
     text, _ = readiness_report_markdown(doc, "Org")
     assert verify_report(text)[0]
+
+
+def test_release_tarball_audit_rejects_private_files(tmp_path):
+    """The release audit is the second lock on the export allowlist.
+
+    A release is the one artifact that cannot be recalled, and release.py builds from
+    whichever tree it is run in - including the private one, where docs/ holds the
+    roadmap and CLAUDE.md holds internal context. The allowlist decides what goes in;
+    this check refuses to publish if anything private got in anyway.
+    """
+    import importlib.util
+    import os
+    import tarfile
+
+    root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    spec = importlib.util.spec_from_file_location(
+        "release_script", os.path.join(root, "scripts", "release.py"))
+    release = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(release)
+
+    def build(members):
+        path = tmp_path / "t.tar.gz"
+        with tarfile.open(path, "w:gz") as tar:
+            for name in members:
+                f = tmp_path / "payload"
+                f.write_text("x")
+                tar.add(f, arcname="pqgate-0.0.0/" + name)
+        return str(path)
+
+    assert release.audit_tarball(build(["pqgate/cli.py", "README.md"])) == []
+    for private in ("CLAUDE.md", "docs/release-roadmap.md", "server/app.py",
+                    "scripts/seed.py", ".pqgate-keys/evidence.key"):
+        leaked = release.audit_tarball(build(["pqgate/cli.py", private]))
+        assert leaked == [private], private

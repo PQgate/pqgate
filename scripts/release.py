@@ -33,9 +33,33 @@ DIST = os.path.join(ROOT, "dist")
 
 # What ships in the scanner tarball. Deliberately small: the scanner, its rules, the
 # CI integrations and the docs someone needs on a machine with no browser.
-INCLUDE_DIRS = ["pqgate", "action", ".gitlab", "docs"]
-INCLUDE_FILES = ["README.md", "LICENSE", "requirements.txt", "Makefile", "CLAUDE.md"]
+INCLUDE_DIRS = ["pqgate", "action", ".gitlab"]
+# The tarball is what a customer runs, not a development checkout. The Makefile drove
+# targets whose files (tests/, scripts/) are not in it, and docs/ was shipped whole -
+# which from the private tree would have packaged the roadmap and CLAUDE.md along with
+# the scanner.
+INCLUDE_FILES = ["README.md", "LICENSE", "requirements.txt",
+                 "docs/sc-12-control-mapping.md"]
 EXCLUDE_NAMES = {"__pycache__", ".pytest_cache", "cmvp-certificates.yml"}
+
+# Checked against every member of the built tarball. INCLUDE_* is the allowlist; this
+# is the second lock, because a release is the one artifact that cannot be recalled.
+FORBIDDEN_MEMBERS = ["CLAUDE.md", "docs/release-roadmap.md", "docs/pqgate-prototype",
+                     "server/", "web/", "scripts/seed.py", "scripts/export_public.py",
+                     ".pqgate-keys/", "SCREENS.md"]
+
+
+def audit_tarball(path):
+    """Refuse to publish a tarball containing anything private."""
+    import tarfile as _tf
+    bad = []
+    with _tf.open(path) as tar:
+        for member in tar.getnames():
+            rel = member.split("/", 1)[1] if "/" in member else member
+            for f in FORBIDDEN_MEMBERS:
+                if rel == f or rel.startswith(f):
+                    bad.append(rel)
+    return bad
 
 
 def sha256(path):
@@ -89,11 +113,24 @@ def main():
                     help="skip signing the rule pack bundle (no key available)")
     args = ap.parse_args()
 
-    if os.path.isdir(DIST):
-        shutil.rmtree(DIST)
-    os.makedirs(DIST)
+    # Clear previous release artifacts only. dist/ also holds dist/public, the checkout
+    # of the public repository - an rmtree here would take its .git with it, and a
+    # release build has no business deleting a sibling repository.
+    os.makedirs(DIST, exist_ok=True)
+    for name in os.listdir(DIST):
+        if name.startswith("pqgate-") or name == "SHA256SUMS":
+            path = os.path.join(DIST, name)
+            if os.path.isfile(path):
+                os.remove(path)
 
     artifacts = [build_scanner(args.version), build_rules(args.version, args.unsigned)]
+    for art in artifacts:
+        leaked = audit_tarball(art)
+        if leaked:
+            print("\nRELEASE REFUSED - " + os.path.basename(art) + " contains:")
+            for name in leaked:
+                print("  " + name)
+            return 1
 
     lines = []
     print("")
