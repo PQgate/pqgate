@@ -1,0 +1,34 @@
+# Example customer workflow — copy into your repo.
+name: Crypto Compliance Gate
+on:
+  pull_request:
+  push: { branches: [main] }
+
+jobs:
+  pqgate:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write   # SARIF upload
+      pull-requests: write     # sticky comment
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+
+      # Baseline CBOM from the target branch, so the PR comment can show a diff.
+      - name: Baseline scan of the target branch
+        if: github.event_name == 'pull_request'
+        run: |
+          git worktree add /tmp/base "origin/${{ github.base_ref }}"
+          python3 -m pqgate scan /tmp/base --no-color --fail-on never \
+            --cbom "$RUNNER_TEMP/baseline-cbom.json" || true
+
+      - uses: pqgate/scan-action@v1     # in-repo during Phase 1: ./action
+        with:
+          policy: .pqgate.yml
+          fail-on: block
+          diff-base: ${{ github.event_name == 'pull_request' && format('origin/{0}', github.base_ref) || '' }}
+          baseline-cbom: ${{ runner.temp }}/baseline-cbom.json
+          version: 0.3.0
+          checksum: ''            # set to the release SHA-256 once published
+          download-url: ''        # or your internal mirror

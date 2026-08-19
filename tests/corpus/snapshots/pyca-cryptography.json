@@ -1,0 +1,97 @@
+{
+ "commit": "18e75fb0658dea814823e51e194e1cf64babeb09",
+ "expect": "crypto",
+ "findings": [
+  {
+   "rule": "py-dh-raw-secret",
+   "classification": "keyestab-not-approved",
+   "location": "src/cryptography/hazmat/primitives/asymmetric/dh.py",
+   "line": 24,
+   "detector": "regex"
+  },
+  {
+   "rule": "py-rsa-keygen",
+   "classification": "quantum-vulnerable",
+   "location": "src/cryptography/hazmat/primitives/asymmetric/rsa.py",
+   "line": 170,
+   "detector": "ast"
+  },
+  {
+   "rule": "py-aes-128",
+   "classification": "sym-below-profile",
+   "location": "src/cryptography/hazmat/primitives/ciphers/algorithms.py",
+   "line": 50,
+   "detector": "regex"
+  },
+  {
+   "rule": "py-aes-128",
+   "classification": "sym-below-profile",
+   "location": "src/cryptography/hazmat/primitives/ciphers/algorithms.py",
+   "line": 54,
+   "detector": "regex"
+  },
+  {
+   "rule": "py-aes-128",
+   "classification": "sym-below-profile",
+   "location": "src/cryptography/hazmat/primitives/ciphers/modes.py",
+   "line": 69,
+   "detector": "regex"
+  },
+  {
+   "rule": "py-aes-128",
+   "classification": "sym-below-profile",
+   "location": "src/cryptography/hazmat/primitives/ciphers/modes.py",
+   "line": 71,
+   "detector": "regex"
+  },
+  {
+   "rule": "py-aes-128",
+   "classification": "sym-below-profile",
+   "location": "src/cryptography/hazmat/primitives/ciphers/modes.py",
+   "line": 77,
+   "detector": "regex"
+  },
+  {
+   "rule": "py-aes-128",
+   "classification": "sym-below-profile",
+   "location": "src/cryptography/hazmat/primitives/serialization/pkcs7.py",
+   "line": 43,
+   "detector": "regex"
+  },
+  {
+   "rule": "py-aes-128",
+   "classification": "sym-below-profile",
+   "location": "src/cryptography/hazmat/primitives/serialization/pkcs7.py",
+   "line": 248,
+   "detector": "regex"
+  },
+  {
+   "rule": "py-aes-128",
+   "classification": "sym-below-profile",
+   "location": "src/cryptography/hazmat/primitives/serialization/pkcs7.py",
+   "line": 251,
+   "detector": "regex"
+  },
+  {
+   "rule": "py-aes-128",
+   "classification": "sym-below-profile",
+   "location": "src/cryptography/hazmat/primitives/serialization/pkcs7.py",
+   "line": 273,
+   "detector": "regex"
+  },
+  {
+   "rule": "py-sha256-sig",
+   "classification": "hash-below-profile",
+   "location": "src/cryptography/hazmat/primitives/serialization/ssh.py",
+   "line": 1007,
+   "detector": "ast"
+  },
+  {
+   "rule": "py-sha256-sig",
+   "classification": "hash-below-profile",
+   "location": "src/cryptography/hazmat/primitives/serialization/ssh.py",
+   "line": 1021,
+   "detector": "ast"
+  }
+ ]
+}

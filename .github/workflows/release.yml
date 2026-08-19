@@ -1,0 +1,94 @@
+# Tag a release and the artifacts build themselves.
+#
+#   git tag v0.6.0 && git push origin v0.6.0
+#
+# Shaped after aws-samples/amazon-eks-custom-amis: the repository is public, the
+# artifacts are built in the open, and every one is published with a checksum that the
+# Action verifies before it runs anything.
+name: Release
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Version to build
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.12' }
+      - run: pip install -r requirements.txt
+
+      # The gate we sell has to pass on the thing we are shipping.
+      - name: Test
+        run: python -m pytest tests -q
+      - name: Self-scan
+        run: |
+          python -m pqgate scan pqgate --no-color --fail-on block
+          python -m pqgate scan server/pqgate_server --no-color --fail-on block
+          python -m pqgate scan action --no-color --fail-on block
+
+      - name: Resolve version
+        id: v
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "version=${{ inputs.version }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+          fi
+
+      # Rule packs are signed with the release key when one is configured. Without it
+      # the bundle is built unsigned and says so, rather than shipping a fake signature.
+      - name: Restore the release signing key
+        if: ${{ secrets.PQGATE_SIGNING_KEY != '' }}
+        run: |
+          mkdir -p .pqgate-keys
+          echo "${{ secrets.PQGATE_SIGNING_KEY }}" | base64 -d > .pqgate-keys/evidence.key.INSECURE-DEV
+          echo "${{ secrets.PQGATE_SIGNING_PUB }}" | base64 -d > .pqgate-keys/evidence.pub
+
+      - name: Build artifacts
+        run: |
+          if [ -f .pqgate-keys/evidence.pub ]; then
+            python scripts/release.py --version "${{ steps.v.outputs.version }}"
+          else
+            python scripts/release.py --version "${{ steps.v.outputs.version }}" --unsigned
+          fi
+
+      - name: Publish
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/pqgate-*.tar.gz
+            dist/pqgate-*.tar.gz.sha256
+            dist/SHA256SUMS
+          generate_release_notes: true
+          body: |
+            ## Install
+
+            ```yaml
+            - uses: PQgate/pqgate/action@v${{ steps.v.outputs.version }}
+              with:
+                fail-on: block
+                checksum: <sha256 from SHA256SUMS below>
+            ```
+
+            Or directly:
+
+            ```bash
+            curl -fsSL -O https://github.com/PQgate/pqgate/releases/download/v${{ steps.v.outputs.version }}/pqgate-${{ steps.v.outputs.version }}.tar.gz
+            curl -fsSL -O https://github.com/PQgate/pqgate/releases/download/v${{ steps.v.outputs.version }}/SHA256SUMS
+            sha256sum -c SHA256SUMS
+            tar -xzf pqgate-${{ steps.v.outputs.version }}.tar.gz
+            ```
+
+            Discovery is free, permanently. Rule-pack *updates* need a license;
+            the packs in this release keep working forever without one.
+            PQforge is provisioned by us — it is not self-serve.

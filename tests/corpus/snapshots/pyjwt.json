@@ -1,0 +1,41 @@
+{
+ "commit": "7144e4534c34810f4525dc4578a32addd8212cff",
+ "expect": "crypto",
+ "findings": [
+  {
+   "rule": "py-jwt-classical",
+   "classification": "quantum-vulnerable",
+   "location": "jwt/api_jwk.py",
+   "line": 45,
+   "detector": "regex"
+  },
+  {
+   "rule": "py-jwt-classical",
+   "classification": "quantum-vulnerable",
+   "location": "jwt/api_jwk.py",
+   "line": 47,
+   "detector": "regex"
+  },
+  {
+   "rule": "py-jwt-classical",
+   "classification": "quantum-vulnerable",
+   "location": "jwt/api_jwk.py",
+   "line": 49,
+   "detector": "regex"
+  },
+  {
+   "rule": "py-jwt-classical",
+   "classification": "quantum-vulnerable",
+   "location": "jwt/api_jwk.py",
+   "line": 51,
+   "detector": "regex"
+  },
+  {
+   "rule": "py-jwt-classical",
+   "classification": "quantum-vulnerable",
+   "location": "jwt/api_jwk.py",
+   "line": 55,
+   "detector": "regex"
+  }
+ ]
+}

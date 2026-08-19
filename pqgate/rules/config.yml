@@ -1,0 +1,106 @@
+# Configuration layer.
+#
+# The application says "TLS". These files decide what is actually negotiated, which is
+# why a repository can be clean at the source level and still fail CNSA 2.0 outright.
+# Matched by filename glob rather than extension.
+version: 1
+# Pack metadata. `pqgate rules` reports the age, and a scan emits a NOTE
+# once a pack is stale - rules go out of date because the guidance under them
+# moves, and a stale pack reports clean.
+pack:
+  name: config
+  description: "Configuration layer: TLS, SSH, JVM, OpenSSL"
+  released: 2026-08-19
+rules:
+  # ---------------- TLS servers ----------------
+  - id: cfg-tls-weak-cipher
+    files: ["nginx.conf", "*.nginx", "ssl.conf", "httpd.conf", "apache2.conf", "*.vhost"]
+    regex: '(?i)ssl_ciphers?\s+.*(AES128|3DES|DES-CBC|RC4|NULL|MD5|SHA1?\b)'
+    class: sym-below-profile
+    controls: [SC-13, SC-12]
+    standards: ["CNSA 2.0", "SP 800-52r2"]
+    message: TLS cipher list permits suites below the profile (AES-128 or weaker)
+    remediation: Restrict to AES-256-GCM suites with SHA-384.
+
+  - id: cfg-tls-classical-kex
+    files: ["nginx.conf", "*.nginx", "ssl.conf", "httpd.conf", "apache2.conf", "*.vhost"]
+    regex: '(?i)ssl_ecdh_curve\s+.*(prime256v1|secp256r1|secp384r1|X25519)'
+    class: quantum-vulnerable
+    controls: [SC-13, SC-12]
+    standards: ["CNSA 2.0", "SP 800-56A"]
+    message: TLS key exchange pinned to a classical elliptic curve
+    remediation: Move to an ML-KEM-1024 hybrid group once the terminator supports it.
+
+  - id: cfg-tls-old-protocol
+    files: ["nginx.conf", "*.nginx", "ssl.conf", "httpd.conf", "apache2.conf", "*.vhost"]
+    regex: '(?i)ssl_protocols?\s+.*(SSLv[23]|TLSv1(\.[01])?\s)'
+    class: sym-below-profile
+    controls: [SC-13]
+    standards: ["SP 800-52r2"]
+    message: Deprecated TLS protocol version enabled
+    remediation: TLS 1.3 only for CNSA 2.0 profiles.
+
+  # ---------------- SSH ----------------
+  - id: cfg-ssh-weak-kex
+    files: ["sshd_config", "ssh_config", "sshd_config.d/*"]
+    regex: '(?i)^\s*KexAlgorithms\s+.*(sha1|group1|group14|ecdh-sha2-nistp256)'
+    class: quantum-vulnerable
+    controls: [SC-13, SC-12]
+    standards: ["CNSA 2.0", "SP 800-56A"]
+    message: SSH key exchange uses a deprecated or classical algorithm
+    remediation: Use sntrup761x25519 or an ML-KEM hybrid once available in your OpenSSH build.
+
+  - id: cfg-ssh-weak-cipher
+    files: ["sshd_config", "ssh_config", "sshd_config.d/*"]
+    regex: '(?i)^\s*Ciphers\s+.*(3des|aes128|arcfour|blowfish|cast128)'
+    class: sym-below-profile
+    controls: [SC-13]
+    standards: ["CNSA 2.0"]
+    message: SSH cipher list permits suites below the profile
+    remediation: Restrict to aes256-gcm@openssh.com.
+
+  - id: cfg-ssh-weak-mac
+    files: ["sshd_config", "ssh_config", "sshd_config.d/*"]
+    regex: '(?i)^\s*MACs\s+.*(md5|sha1)'
+    class: weak-hash
+    controls: [SC-13]
+    standards: ["SP 800-131A"]
+    message: SSH MAC list permits MD5 or SHA-1
+    remediation: Restrict to hmac-sha2-512-etm@openssh.com.
+
+  - id: cfg-ssh-rsa-hostkey
+    files: ["sshd_config", "ssh_config", "sshd_config.d/*"]
+    regex: '(?i)^\s*(HostKeyAlgorithms|PubkeyAcceptedAlgorithms)\s+.*(ssh-rsa|ssh-dss|ecdsa-sha2)'
+    class: quantum-vulnerable
+    controls: [SC-13, SC-12]
+    standards: ["CNSA 2.0"]
+    message: SSH host or public key algorithm is quantum-vulnerable
+    remediation: Track SSH PQC support; record as migration debt until available.
+
+  # ---------------- Java / OpenSSL ----------------
+  - id: cfg-java-weak-allowed
+    files: ["java.security", "java.policy"]
+    regex: '(?i)jdk\.tls\.disabledAlgorithms\s*=(?!.*\bRSA\b).*'
+    class: quantum-vulnerable
+    controls: [SC-13]
+    standards: ["CNSA 2.0"]
+    message: JVM TLS policy still permits quantum-vulnerable key exchange
+    remediation: Add the classical key-exchange algorithms to jdk.tls.disabledAlgorithms.
+
+  - id: cfg-java-jks-keystore
+    files: ["java.security"]
+    regex: '(?i)keystore\.type\s*=\s*jks'
+    class: keymgmt-below-strength
+    controls: [SC-12]
+    standards: ["SP 800-57", "FIPS 140-3"]
+    message: JKS keystore format - proprietary, not a validated key store
+    remediation: Use PKCS#12, or a PKCS#11 token inside a validated module.
+
+  - id: cfg-openssl-fips-off
+    files: ["openssl.cnf", "openssl.conf", "*.ossl"]
+    regex: '(?i)default\s*=\s*default_sect|activate\s*=\s*0'
+    class: module-not-validated
+    controls: [SC-12, IA-7]
+    standards: ["FIPS 140-3"]
+    message: OpenSSL configuration does not activate the FIPS provider
+    remediation: Enable the fips provider section and set default properties to fips=yes.

@@ -1,0 +1,47 @@
+# PQgate's own CI. The gate we sell has to pass on the thing we ship.
+name: CI
+on:
+  pull_request:
+  push: { branches: [main] }
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.12' }
+      - run: pip install -r requirements.txt
+      - run: python -m pytest tests -q
+
+  corpus:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.12' }
+      - run: pip install -r requirements.txt
+      - run: python scripts/corpus.py fetch
+      # Any regression against the pinned snapshots, or a false-positive rate at or
+      # above 5%, fails the build. Detection quality is a release blocker, not a goal.
+      - run: python scripts/corpus.py check
+
+  self-scan:
+    runs-on: ubuntu-latest
+    permissions: { contents: read, security-events: write }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.12' }
+      - run: pip install -r requirements.txt
+      # Over shipped source only. tests/ and demo-repo/ hold deliberately vulnerable
+      # fixtures - they are supposed to trigger every rule, and the suite asserts it.
+      - run: |
+          python -m pqgate scan pqgate --no-color --sarif scanner.sarif --fail-on block
+          python -m pqgate scan action --no-color --sarif action.sarif  --fail-on block
+      # Under the FIPS profile the development signing backend blocks, as it should.
+      # Recorded, not enforced: the audited path needs a native liboqs build.
+      - run: python -m pqgate scan pqgate --no-color --profile fips-140-3 --fail-on never
+      - uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with: { sarif_file: scanner.sarif }

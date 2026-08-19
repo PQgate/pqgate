@@ -1,0 +1,27 @@
+{
+ "commit": "8f8b212de8c2129d7954c6cd373762880375620a",
+ "expect": "crypto",
+ "findings": [
+  {
+   "rule": "py-md5",
+   "classification": "weak-hash",
+   "location": "src/requests/auth.py",
+   "line": 179,
+   "detector": "ast"
+  },
+  {
+   "rule": "py-sha1",
+   "classification": "weak-hash",
+   "location": "src/requests/auth.py",
+   "line": 187,
+   "detector": "ast"
+  },
+  {
+   "rule": "py-sha1",
+   "classification": "weak-hash",
+   "location": "src/requests/auth.py",
+   "line": 237,
+   "detector": "ast"
+  }
+ ]
+}

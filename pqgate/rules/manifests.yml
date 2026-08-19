@@ -1,0 +1,92 @@
+# PQgate dependency-manifest knowledge base (Layer 1). Data only.
+#
+# `module` links a package to an entry in cmvp.yml, which is what turns "this library
+# is present" into "this is not the validated distribution" (SC-12 / IA-7).
+version: 1
+# Pack metadata. `pqgate rules` reports the age, and a scan emits a NOTE
+# once a pack is stale - rules go out of date because the guidance under them
+# moves, and a stale pack reports clean.
+pack:
+  name: manifests
+  description: Dependency manifest knowledge base
+  released: 2026-08-19
+manifests:
+  requirements.txt:
+    pycryptodome:
+      class: lib-capability
+      message: "Provides RSA/EC/DSA (quantum-vulnerable capabilities)"
+      controls: [SC-13, SC-12]
+      standards: ["FIPS 140-3"]
+      module: pycryptodome
+    cryptography:
+      class: lib-capability
+      message: "Provides RSA/EC (quantum-vulnerable capabilities)"
+      controls: [SC-13, SC-12]
+      standards: ["FIPS 140-3"]
+      module: pyca-cryptography
+    rsa:
+      class: lib-capability
+      message: "Pure-RSA library (quantum-vulnerable)"
+      controls: [SC-13]
+    ecdsa:
+      class: lib-capability
+      message: "Pure-ECDSA library (quantum-vulnerable)"
+      controls: [SC-13]
+    pyjwt:
+      class: lib-capability
+      message: "JWT lib; verify signing algorithms"
+      controls: [SC-13]
+    dilithium-py:
+      class: module-not-validated
+      message: "Unaudited pure-Python ML-DSA implementation (educational, per its own authors)"
+      controls: [SC-12, IA-7]
+      standards: ["FIPS 140-3"]
+      module: dilithium-py
+    kyber-py:
+      class: module-not-validated
+      message: "Unaudited pure-Python ML-KEM implementation (educational, per its own authors)"
+      controls: [SC-12, IA-7]
+      standards: ["FIPS 140-3"]
+      module: kyber-py
+    liboqs-python:
+      class: pqc-safe
+      message: "PQC library (ML-KEM / ML-DSA capable)"
+      controls: [SC-13, SC-12]
+      standards: ["FIPS 203", "FIPS 204"]
+      module: liboqs
+
+  go.mod:
+    github.com/cloudflare/circl:
+      class: pqc-safe
+      message: "CIRCL: PQC-capable (ML-KEM, hybrids)"
+      controls: [SC-13]
+    golang.org/x/crypto:
+      class: lib-capability
+      message: "Extended crypto incl. classical primitives"
+      controls: [SC-13, SC-12]
+      standards: ["FIPS 140-3"]
+      module: go-stdlib-crypto
+    github.com/open-quantum-safe/liboqs-go:
+      class: pqc-safe
+      message: "liboqs Go bindings (ML-KEM / ML-DSA capable)"
+      controls: [SC-13, SC-12]
+      standards: ["FIPS 203", "FIPS 204"]
+      module: liboqs
+
+  pom.xml:
+    bcprov:
+      class: lib-capability
+      message: "BouncyCastle general-purpose provider: RSA/EC + PQC capable; verify usage"
+      controls: [SC-13, SC-12, IA-7]
+      standards: ["FIPS 140-3"]
+      module: bcprov
+    bc-fips:
+      class: lib-capability
+      message: "BouncyCastle FIPS provider (BC-FJA)"
+      controls: [SC-12, IA-7]
+      standards: ["FIPS 140-3"]
+      module: bc-fips
+    bcpqc:
+      class: pqc-safe
+      message: "BouncyCastle PQC module"
+      controls: [SC-13]

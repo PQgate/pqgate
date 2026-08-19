@@ -1,0 +1,80 @@
+# OSS regression corpus. Commits are pinned so results are reproducible;
+# bumping a pin is a deliberate change that must ship with a snapshot update.
+#
+# expect: crypto - the repo genuinely contains cryptography; findings expected.
+# expect: clean  - no cryptography of its own; any finding is a false positive
+#                  against the <5% release gate.
+# Regenerate pins with: python scripts/corpus.py pin
+version: 1
+repos:
+- name: pyjwt
+  url: https://github.com/jpadilla/pyjwt
+  commit: 7144e4534c34810f4525dc4578a32addd8212cff
+  paths:
+  - jwt
+  expect: crypto
+- name: paramiko
+  url: https://github.com/paramiko/paramiko
+  commit: d60d5c17d78f344b51ed651e796d2931133a9b22
+  paths:
+  - paramiko
+  expect: crypto
+- name: pyca-cryptography
+  url: https://github.com/pyca/cryptography
+  commit: 18e75fb0658dea814823e51e194e1cf64babeb09
+  paths:
+  - src/cryptography/hazmat/primitives
+  expect: crypto
+- name: requests
+  url: https://github.com/psf/requests
+  commit: 8f8b212de8c2129d7954c6cd373762880375620a
+  paths:
+  - src/requests
+  expect: crypto
+  note: auth.py uses hashlib.md5/sha1 for HTTP Digest auth - genuine findings, not
+    FPs
+- name: click
+  url: https://github.com/pallets/click
+  commit: 61b69e967e525bd502f5bf42def4d551e761fe0e
+  paths:
+  - src/click
+  expect: clean
+- name: circl
+  url: https://github.com/cloudflare/circl
+  commit: 33d33c75d9a09aac9a38aba282d0799880dd7224
+  paths:
+  - kem
+  - sign
+  expect: crypto
+- name: cobra
+  url: https://github.com/spf13/cobra
+  commit: adbc8813901bba65827259daa8e22ff94ec1f30e
+  paths:
+  - .
+  expect: clean
+- name: go-jose
+  url: https://github.com/go-jose/go-jose
+  commit: 8d4e64dd6193f330ff4babb4038c99c56974abff
+  paths:
+  - .
+  expect: crypto
+- name: commons-codec
+  url: https://github.com/apache/commons-codec
+  commit: 55407f6a059d855c40ee4e1bca4d44502034ad5a
+  paths:
+  - src/main/java
+  expect: crypto
+  known_gap: java-non-literal-algorithm
+  note: algorithm names arrive as constants/variables, e.g. MessageDigest.getInstance(algorithm);
+    the literal-only Java regex misses them. Fixed by the tree-sitter Java pass in
+    release 0.1.
+- name: jjwt
+  url: https://github.com/jwtk/jjwt
+  commit: 401ba26ee72969c373d62a618b48444fc01e0e73
+  paths:
+  - impl/src/main/java
+  expect: crypto
+  known_gap: java-non-literal-algorithm
+  note: algorithm names arrive as constants/variables, e.g. MessageDigest.getInstance(algorithm);
+    the literal-only Java regex misses them. Fixed by the tree-sitter Java pass in
+    release 0.1.

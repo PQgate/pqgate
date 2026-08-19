@@ -1,0 +1,47 @@
+# PQgate — GitLab CI template
+#
+# Usage in .gitlab-ci.yml:
+#   include:
+#     - local: '.gitlab/pqgate.yml'
+#
+# Emits a GitLab-native security report so findings appear in the MR security widget,
+# plus the CBOM and SARIF as ordinary artifacts. Air-gapped runners: set
+# PQGATE_ROOT to a mounted copy of the release and the job downloads nothing.
+
+variables:
+  PQGATE_PATH: "."
+  PQGATE_POLICY: ".pqgate.yml"
+  PQGATE_FAIL_ON: "block"
+  PQGATE_ROOT: ""          # path to an unpacked PQgate release; empty = this repo
+
+pqgate:
+  stage: test
+  image: python:3.12-slim
+  variables:
+    GIT_DEPTH: 0
+  before_script:
+    - if [ -z "$PQGATE_ROOT" ]; then export PQGATE_ROOT="$CI_PROJECT_DIR"; fi
+  script:
+    - |
+      set -uo pipefail
+      ARGS="scan $PQGATE_PATH --no-color --cbom pqgate-cbom.json --sarif pqgate.sarif --fail-on $PQGATE_FAIL_ON"
+      [ -f "$PQGATE_POLICY" ] && ARGS="$ARGS --policy $PQGATE_POLICY"
+      if [ -n "${CI_MERGE_REQUEST_TARGET_BRANCH_NAME:-}" ]; then
+        git fetch --quiet origin "$CI_MERGE_REQUEST_TARGET_BRANCH_NAME"
+        ARGS="$ARGS --diff-base origin/$CI_MERGE_REQUEST_TARGET_BRANCH_NAME"
+      fi
+      PYTHONPATH="$PQGATE_ROOT" python3 -m pqgate $ARGS
+      STATUS=$?
+      PYTHONPATH="$PQGATE_ROOT" python3 "$PQGATE_ROOT/.gitlab/sarif_to_gitlab.py" \
+        pqgate.sarif gl-sast-report.json
+      exit $STATUS
+  artifacts:
+    when: always
+    paths:
+      - pqgate-cbom.json
+      - pqgate.sarif
+    reports:
+      sast: gl-sast-report.json
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH

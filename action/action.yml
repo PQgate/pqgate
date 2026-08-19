@@ -1,0 +1,139 @@
+name: 'PQgate Scan'
+description: 'CNSA 2.0 crypto-compliance gate — scans code for quantum-vulnerable cryptography and blocks non-compliant merges'
+branding: { icon: 'lock', color: 'blue' }
+
+inputs:
+  path:         { description: 'Directory to scan', default: '.' }
+  policy:       { description: 'Path to .pqgate.yml', default: '.pqgate.yml' }
+  profile:      { description: 'Override profile (cnsa-2.0 | nist-baseline)', default: '' }
+  fail-on:      { description: 'block | warn | never', default: 'block' }
+  diff-base:    { description: 'Git ref for new-code-only scoping (e.g. origin/main)', default: '' }
+  version:      { description: 'PQgate release to download', default: '0.3.0' }
+  checksum:     { description: 'SHA-256 of the release archive. Required unless allow-unverified-download is true.', default: '' }
+  download-url: { description: 'Base URL for release archives (air-gapped mirrors welcome)', default: '' }
+  allow-unverified-download: { description: 'Skip checksum verification. Never use in production.', default: 'false' }
+  comment:      { description: 'Post/update a sticky PR comment with the CBOM diff', default: 'true' }
+  baseline-cbom: { description: 'Path to the base-branch CBOM for the PR comment diff', default: '' }
+  push-url:     { description: 'Evidence server base URL to upload the CBOM to', default: '' }
+  push-token:   { description: 'Evidence server token', default: '' }
+  github-token: { description: 'Token used for the sticky comment', default: '${{ github.token }}' }
+
+outputs:
+  score:     { description: 'Quantum-readiness score 0-100', value: '${{ steps.scan.outputs.score }}' }
+  blocking:  { description: 'Number of blocking violations', value: '${{ steps.scan.outputs.blocking }}' }
+  cbom:      { description: 'Path to the generated CBOM', value: 'pqgate-cbom.json' }
+
+runs:
+  using: 'composite'
+  steps:
+    # ------------------------------------------------------------------
+    # Install. A published release is a self-contained archive verified by
+    # SHA-256 — no `pip install` from a network index in the gate path.
+    # When the action runs from a checkout of this repo (Phase 1), the
+    # in-repo package is used directly and nothing is downloaded at all.
+    # ------------------------------------------------------------------
+    - name: Install PQgate
+      id: install
+      shell: bash
+      env:
+        VERSION: ${{ inputs.version }}
+        CHECKSUM: ${{ inputs.checksum }}
+        BASE_URL: ${{ inputs.download-url }}
+        ALLOW_UNVERIFIED: ${{ inputs.allow-unverified-download }}
+        ACTION_PATH: ${{ github.action_path }}
+      run: |
+        set -euo pipefail
+        LOCAL="$ACTION_PATH/.."
+        if [ -d "$LOCAL/pqgate" ]; then
+          echo "using in-repo PQgate at $LOCAL"
+          echo "root=$LOCAL" >> "$GITHUB_OUTPUT"
+          exit 0
+        fi
+        if [ -z "$BASE_URL" ]; then
+          echo "::error::no in-repo PQgate found and download-url is empty"
+          exit 2
+        fi
+        ARCHIVE="pqgate-${VERSION}.tar.gz"
+        curl -fsSL --retry 3 -o "$ARCHIVE" "${BASE_URL%/}/v${VERSION}/${ARCHIVE}"
+        if [ -n "$CHECKSUM" ]; then
+          echo "${CHECKSUM}  ${ARCHIVE}" | sha256sum --check --status \
+            || { echo "::error::checksum mismatch for ${ARCHIVE} — refusing to run"; exit 2; }
+          echo "checksum verified"
+        elif [ "$ALLOW_UNVERIFIED" != "true" ]; then
+          echo "::error::no checksum supplied; set checksum or allow-unverified-download"
+          exit 2
+        else
+          echo "::warning::running an unverified download"
+        fi
+        mkdir -p "$RUNNER_TEMP/pqgate"
+        tar -xzf "$ARCHIVE" -C "$RUNNER_TEMP/pqgate" --strip-components=1
+        echo "root=$RUNNER_TEMP/pqgate" >> "$GITHUB_OUTPUT"
+
+    # ------------------------------------------------------------------
+    - name: PQgate scan
+      id: scan
+      shell: bash
+      env:
+        ROOT: ${{ steps.install.outputs.root }}
+        PUSH_TOKEN: ${{ inputs.push-token }}
+      run: |
+        set -uo pipefail
+        cd "$GITHUB_WORKSPACE"
+        ARGS=(scan "${{ inputs.path }}" --no-color
+              --cbom pqgate-cbom.json --sarif pqgate.sarif
+              --fail-on "${{ inputs.fail-on }}")
+        [ -n "${{ inputs.profile }}" ]   && ARGS+=(--profile "${{ inputs.profile }}")
+        [ -n "${{ inputs.diff-base }}" ] && ARGS+=(--diff-base "${{ inputs.diff-base }}")
+        [ -f "${{ inputs.policy }}" ]    && ARGS+=(--policy "${{ inputs.policy }}")
+        if [ -n "${{ inputs.push-url }}" ]; then
+          ARGS+=(--push "${{ inputs.push-url }}" --token "$PUSH_TOKEN"
+                 --repo "${GITHUB_REPOSITORY##*/}" --branch "${GITHUB_REF_NAME}"
+                 --commit "${GITHUB_SHA}")
+        fi
+        PYTHONPATH="$ROOT" python3 -m pqgate "${ARGS[@]}" | tee pqgate-console.txt
+        STATUS=${PIPESTATUS[0]}
+        SCORE=$(python3 -c "import json;print(json.load(open('pqgate-cbom.json'))['metadata']['score'])")
+        BLOCKING=$(python3 -c "import json;print(json.load(open('pqgate-cbom.json'))['metadata']['counts']['block'])")
+        echo "score=$SCORE" >> "$GITHUB_OUTPUT"
+        echo "blocking=$BLOCKING" >> "$GITHUB_OUTPUT"
+        {
+          echo "### PQgate — CNSA 2.0 gate"
+          echo ""
+          echo "Quantum-readiness score: **${SCORE}/100** · blocking violations: **${BLOCKING}**"
+        } >> "$GITHUB_STEP_SUMMARY"
+        exit $STATUS
+
+    # ------------------------------------------------------------------
+    - name: Upload SARIF to code scanning
+      if: always()
+      uses: github/codeql-action/upload-sarif@v3
+      with: { sarif_file: pqgate.sarif }
+
+    - name: Attach evidence artifacts
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: pqgate-evidence
+        path: |
+          pqgate-cbom.json
+          pqgate.sarif
+          pqgate-console.txt
+
+    # ------------------------------------------------------------------
+    # One sticky comment per PR, updated in place on every push.
+    # ------------------------------------------------------------------
+    - name: Sticky PR comment
+      if: always() && github.event_name == 'pull_request' && inputs.comment == 'true'
+      shell: bash
+      env:
+        ROOT: ${{ steps.install.outputs.root }}
+        GH_TOKEN: ${{ inputs.github-token }}
+        BASELINE: ${{ inputs.baseline-cbom }}
+      run: |
+        set -euo pipefail
+        cd "$GITHUB_WORKSPACE"
+        PYTHONPATH="$ROOT" python3 "$ROOT/action/pr_comment.py" \
+          --cbom pqgate-cbom.json \
+          ${BASELINE:+--baseline "$BASELINE"} \
+          --repo "$GITHUB_REPOSITORY" \
+          --pr "$(jq -r .number "$GITHUB_EVENT_PATH")"

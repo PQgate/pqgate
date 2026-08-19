@@ -1,0 +1,146 @@
+# PQgate source-code detection rules (Layer 2).
+# Data only — no code. Ships independently of the binary (see release-roadmap 1.2).
+#
+# id:      stable rule identifier, appears in SARIF and CBOM
+# lang:    file extensions this rule applies to
+# regex:   Python `re` syntax; a named group `alg` or `param` is captured into the finding
+# class:   classification -> profile decides the action (block/warn/pass)
+# message: human-readable finding text
+# ast:     optional AST matcher (Python only) — call target dotted names + literal arg prefixes
+version: 1
+# Pack metadata. `pqgate rules` reports the age, and a scan emits a NOTE
+# once a pack is stale - rules go out of date because the guidance under them
+# moves, and a stale pack reports clean.
+pack:
+  name: source
+  description: Algorithm detection for Python, Go and Java (SC-13)
+  released: 2026-08-19
+rules:
+  # ---------------- Python ----------------
+  - id: py-rsa-keygen
+    lang: [".py"]
+    regex: 'rsa\.generate_private_key|RSA\.generate\('
+    class: quantum-vulnerable
+    message: RSA key generation
+    ast: { calls: ["rsa.generate_private_key", "RSA.generate", "Crypto.PublicKey.RSA.generate"] }
+  - id: py-ec-keygen
+    lang: [".py"]
+    regex: 'ec\.generate_private_key|ECC\.generate\('
+    class: quantum-vulnerable
+    message: Elliptic-curve key generation
+    ast: { calls: ["ec.generate_private_key", "ECC.generate"] }
+  - id: py-dh
+    lang: [".py"]
+    regex: '\bdh\.generate_parameters|DHParameterNumbers'
+    class: quantum-vulnerable
+    message: Classical Diffie-Hellman
+    ast: { calls: ["dh.generate_parameters", "dh.DHParameterNumbers"] }
+  - id: py-md5
+    lang: [".py"]
+    regex: 'hashlib\.md5\b|MD5\.new\('
+    class: weak-hash
+    message: MD5 hash
+    ast: { calls: ["hashlib.md5", "MD5.new"] }
+  - id: py-sha1
+    lang: [".py"]
+    regex: 'hashlib\.sha1\b|\bSHA1?\.new\('
+    class: weak-hash
+    message: SHA-1 hash
+    ast: { calls: ["hashlib.sha1", "SHA1.new"] }
+  - id: py-sha256-sig
+    lang: [".py"]
+    regex: 'hashes\.SHA256\(\)'
+    class: hash-below-profile
+    message: SHA-256 in crypto context (CNSA 2.0 requires SHA-384+)
+    ast: { calls: ["hashes.SHA256"] }
+  - id: py-3des
+    lang: [".py"]
+    regex: 'TripleDES|\bDES3\b'
+    class: sym-below-profile
+    message: 3DES cipher
+    ast: { calls: ["algorithms.TripleDES", "DES3.new"] }
+  - id: py-aes-128
+    lang: [".py"]
+    regex: 'AES(-|_)?128|key_size\s*=\s*128'
+    class: sym-below-profile
+    message: AES-128 (CNSA 2.0 requires AES-256)
+  - id: py-jwt-classical
+    lang: [".py"]
+    regex: 'algorithm[s]?\s*=\s*[\[\"'']+\s*(RS|ES|PS)(256|384|512)'
+    class: quantum-vulnerable
+    message: JWT signed with classical RSA/ECDSA
+  - id: py-pqc-oqs
+    lang: [".py"]
+    regex: '\boqs\.(KeyEncapsulation|Signature)\(\s*[\"''](?P<alg>[\w\-]+)'
+    class: pqc-safe
+    message: PQC via liboqs
+    ast: { calls: ["oqs.KeyEncapsulation", "oqs.Signature"], literal_arg: 0 }
+
+  # ---------------- Go ----------------
+  - id: go-rsa-keygen
+    lang: [".go"]
+    regex: 'rsa\.GenerateKey\('
+    class: quantum-vulnerable
+    message: RSA key generation
+  - id: go-ecdsa-keygen
+    lang: [".go"]
+    regex: 'ecdsa\.GenerateKey\(|elliptic\.P(224|256|384|521)'
+    class: quantum-vulnerable
+    message: ECDSA / NIST-curve usage
+  - id: go-ed25519
+    lang: [".go"]
+    regex: 'ed25519\.GenerateKey\('
+    class: quantum-vulnerable
+    message: Ed25519 signature (not CNSA 2.0)
+  - id: go-md5
+    lang: [".go"]
+    regex: '\bmd5\.(New|Sum)\b'
+    class: weak-hash
+    message: MD5 hash
+  - id: go-sha1
+    lang: [".go"]
+    regex: '\bsha1\.(New|Sum)\b'
+    class: weak-hash
+    message: SHA-1 hash
+  - id: go-des
+    lang: [".go"]
+    regex: '\bdes\.New(TripleDES)?Cipher'
+    class: sym-below-profile
+    message: DES/3DES cipher
+  - id: go-pqc-mlkem
+    lang: [".go"]
+    regex: '(?i)(x25519)?mlkem(?P<param>512|768|1024)'
+    class: pqc-safe
+    message: ML-KEM key encapsulation
+
+  # ---------------- Java ----------------
+  - id: java-rsa
+    lang: [".java"]
+    regex: 'getInstance\(\s*\"RSA'
+    class: quantum-vulnerable
+    message: RSA via JCA
+  - id: java-ec
+    lang: [".java"]
+    regex: 'getInstance\(\s*\"(EC|ECDSA|ECDH)'
+    class: quantum-vulnerable
+    message: Elliptic-curve via JCA
+  - id: java-md5
+    lang: [".java"]
+    regex: 'getInstance\(\s*\"MD5'
+    class: weak-hash
+    message: MD5 hash
+  - id: java-sha1
+    lang: [".java"]
+    regex: 'getInstance\(\s*\"SHA-?1\"'
+    class: weak-hash
+    message: SHA-1 hash
+  - id: java-des
+    lang: [".java"]
+    regex: 'getInstance\(\s*\"(DESede|DES)'
+    class: sym-below-profile
+    message: DES/3DES cipher
+  - id: java-pqc-bc
+    lang: [".java"]
+    regex: 'getInstance\(\s*\"(?P<alg>ML-KEM[\w\-]*|ML-DSA[\w\-]*|Dilithium\w*|Kyber\w*)'
+    class: pqc-safe
+    message: PQC via BouncyCastle

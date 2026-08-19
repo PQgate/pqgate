@@ -1,0 +1,13 @@
+{
+ "commit": "401ba26ee72969c373d62a618b48444fc01e0e73",
+ "expect": "crypto",
+ "findings": [
+  {
+   "rule": "java-ecdh-raw-secret",
+   "classification": "keyestab-not-approved",
+   "location": "impl/src/main/java/io/jsonwebtoken/impl/security/EcdhKeyAlgorithm.java",
+   "line": 98,
+   "detector": "regex"
+  }
+ ]
+}

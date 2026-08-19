@@ -1,0 +1,142 @@
+# SP 800-133 - Recommendation for Cryptographic Key Generation
+# SP 800-90A  - Deterministic random bit generators
+#
+# SC-12 evidence. A key is only as strong as the randomness it came from, so a key
+# built from a non-approved RBG is a total compromise regardless of the algorithm
+# wrapped around it. These are among the highest-confidence findings in the tool.
+version: 1
+# Pack metadata. `pqgate rules` reports the age, and a scan emits a NOTE
+# once a pack is stale - rules go out of date because the guidance under them
+# moves, and a stale pack reports clean.
+pack:
+  name: keygen
+  description: Key generation, SP 800-133 and SP 800-90A (SC-12)
+  released: 2026-08-19
+rules:
+  # ---------------- Python ----------------
+  - id: py-keygen-weak-rbg
+    lang: [".py"]
+    regex: '\brandom\.(random|randint|randrange|choice|getrandbits|sample|shuffle)\s*\('
+    class: keygen-not-approved
+    controls: [SC-12, SC-13]
+    standards: ["SP 800-133", "SP 800-90A"]
+    message: Key material from a non-approved RBG (random module)
+    remediation: Use secrets.token_bytes() or os.urandom(), which draw from the OS CSPRNG.
+    key_context: true
+    ast:
+      calls: ["random.random", "random.randint", "random.randrange", "random.choice",
+              "random.getrandbits", "random.sample", "random.shuffle"]
+
+  - id: py-keygen-seeded-rbg
+    lang: [".py"]
+    regex: '\brandom\.seed\s*\('
+    class: keygen-not-approved
+    controls: [SC-12]
+    standards: ["SP 800-133", "SP 800-90A"]
+    message: Deterministically seeded RBG - output is reproducible
+    remediation: Never seed an RBG used for key material.
+    key_context: true
+    ast: { calls: ["random.seed"] }
+
+  - id: py-hardcoded-key
+    lang: [".py"]
+    regex: '(?i)\b(secret|private|api|encryption|signing|master|aes|hmac)_?key\s*=\s*[bfru]*["''][^"'']{16,}["'']'
+    class: keygen-hardcoded
+    controls: [SC-12, SC-28]
+    standards: ["SP 800-133", "SP 800-57"]
+    message: Key material hardcoded in source
+    remediation: Load key material from a key manager or an injected secret, never from source.
+
+  - id: py-hardcoded-key-material
+    lang: [".py", ".go", ".java"]
+    regex: '(?i)\b\w*(key|secret|token|passphrase)\w*\s*[:=]{1,2}\s*[bfru]*["''](?:[A-Fa-f0-9]{32,}|[A-Za-z0-9+/]{40,}={0,2})["'']'
+    class: keygen-hardcoded
+    controls: [SC-12, SC-28]
+    standards: ["SP 800-133", "SP 800-57"]
+    message: Literal that looks like key material assigned to a key-shaped name
+    remediation: Load key material from a key manager; rotate anything that reached version control.
+
+  - id: py-hardcoded-iv
+    lang: [".py"]
+    regex: '(?i)\b(iv|nonce)\s*=\s*[bfru]*["''][^"'']{8,}["'']'
+    class: keygen-hardcoded
+    controls: [SC-12]
+    standards: ["SP 800-133", "SP 800-38D"]
+    message: Static IV or nonce in source - catastrophic for GCM and CTR modes
+    remediation: Generate a fresh IV/nonce per operation from an approved RBG.
+
+  - id: py-pbkdf-not-approved
+    lang: [".py"]
+    regex: '\b(argon2|bcrypt|scrypt)\.(hash|kdf|derive)|Argon2\w*\('
+    class: keygen-not-approved
+    controls: [SC-12]
+    standards: ["SP 800-132"]
+    message: Password-based key derivation using a function outside SP 800-132
+    remediation: PBKDF2-HMAC-SHA384 is the approved construction for FIPS boundaries.
+
+  # ---------------- Go ----------------
+  - id: go-keygen-weak-rbg
+    lang: [".go"]
+    # The import alone proves nothing - plenty of honest code shuffles slices. The
+    # finding is a non-approved RNG call feeding a key-shaped destination.
+    regex: '(?i)\b\w*(key|secret|token|nonce|iv|salt|seed|session)\w*\s*(:?=)[^=\n]*\b(mathrand|rand)\.(Intn|Int31|Int63|Float64|Perm|Shuffle|Read)\s*\('
+    class: keygen-not-approved
+    controls: [SC-12, SC-13]
+    standards: ["SP 800-133", "SP 800-90A"]
+    message: Key material from math/rand rather than crypto/rand
+    remediation: Import crypto/rand and pass rand.Reader to key generation.
+
+  - id: go-hardcoded-key
+    lang: [".go"]
+    regex: '(?i)\b(secretKey|privateKey|apiKey|encryptionKey|signingKey|masterKey)\s*(:?=)\s*\[?\]?byte?\(?"[^"]{16,}"'
+    class: keygen-hardcoded
+    controls: [SC-12, SC-28]
+    standards: ["SP 800-133", "SP 800-57"]
+    message: Key material hardcoded in source
+    remediation: Load key material from a key manager or an injected secret.
+
+  # ---------------- Java ----------------
+  - id: java-keygen-weak-rbg
+    lang: [".java"]
+    regex: 'new\s+Random\s*\(|Math\.random\s*\('
+    class: keygen-not-approved
+    controls: [SC-12, SC-13]
+    standards: ["SP 800-133", "SP 800-90A"]
+    message: Key material from java.util.Random rather than SecureRandom
+    remediation: Use SecureRandom.getInstanceStrong() and pass it to KeyGenerator.init().
+
+  - id: java-securerandom-seeded
+    lang: [".java"]
+    # Must be a *constructor* with a seed argument, or an explicit setSeed. A getter
+    # such as ensureSecureRandom(request) is not a finding.
+    regex: 'new\s+SecureRandom\s*\(\s*[^)\s]|\.setSeed\s*\('
+    class: keygen-not-approved
+    controls: [SC-12]
+    standards: ["SP 800-133", "SP 800-90A"]
+    message: SecureRandom constructed or seeded with a fixed value
+    remediation: Let the platform seed SecureRandom; never supply a fixed seed.
+
+  - id: java-hardcoded-key
+    lang: [".java"]
+    regex: '(?i)\b(String|byte\[\])\s+\w*(secret|private|api|encryption|signing|master)Key\w*\s*=\s*"[^"]{16,}"'
+    class: keygen-hardcoded
+    controls: [SC-12, SC-28]
+    standards: ["SP 800-133", "SP 800-57"]
+    message: Key material hardcoded in source
+    remediation: Load key material from a keystore or key manager.
+
+  # ---------------- unaudited implementations (SC-12 / IA-7) ----------------
+  # An *unaudited implementation* and an *unvalidated module* are different failures,
+  # and the first is worse. A pure-Python PQC implementation is invisible to a scanner
+  # that only knows library names, which is how a "we use ML-DSA-87" claim survives
+  # review while resting on code its own authors call educational.
+  - id: py-unaudited-pqc-impl
+    lang: [".py"]
+    regex: '(?:^|\s)(?:from|import)\s+(dilithium_py|kyber_py|pqcrypto)\b'
+    class: module-not-validated
+    controls: [SC-12, IA-7]
+    standards: ["FIPS 140-3"]
+    message: Post-quantum algorithm from an unaudited pure-Python implementation
+    remediation: >-
+      Use liboqs, OpenSSL 3.5+, AWS-LC or BouncyCastle FIPS. Correct algorithm choice
+      does not survive an unaudited implementation.

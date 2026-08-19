@@ -1,0 +1,69 @@
+{
+ "commit": "d60d5c17d78f344b51ed651e796d2931133a9b22",
+ "expect": "crypto",
+ "findings": [
+  {
+   "rule": "py-ec-keygen",
+   "classification": "quantum-vulnerable",
+   "location": "paramiko/ecdsakey.py",
+   "line": 268,
+   "detector": "ast"
+  },
+  {
+   "rule": "py-pbkdf-not-approved",
+   "classification": "keygen-not-approved",
+   "location": "paramiko/ed25519key.py",
+   "line": 119,
+   "detector": "regex"
+  },
+  {
+   "rule": "py-ecdh-raw-secret",
+   "classification": "keyestab-not-approved",
+   "location": "paramiko/kex_curve25519.py",
+   "line": 37,
+   "detector": "ast"
+  },
+  {
+   "rule": "py-ec-keygen",
+   "classification": "quantum-vulnerable",
+   "location": "paramiko/kex_ecdh_nist.py",
+   "line": 59,
+   "detector": "ast"
+  },
+  {
+   "rule": "py-ecdh-raw-secret",
+   "classification": "keyestab-not-approved",
+   "location": "paramiko/kex_ecdh_nist.py",
+   "line": 71,
+   "detector": "ast"
+  },
+  {
+   "rule": "py-ecdh-raw-secret",
+   "classification": "keyestab-not-approved",
+   "location": "paramiko/kex_ecdh_nist.py",
+   "line": 117,
+   "detector": "ast"
+  },
+  {
+   "rule": "py-aes-128",
+   "classification": "sym-below-profile",
+   "location": "paramiko/pkey.py",
+   "line": 128,
+   "detector": "regex"
+  },
+  {
+   "rule": "py-pbkdf-not-approved",
+   "classification": "keygen-not-approved",
+   "location": "paramiko/pkey.py",
+   "line": 713,
+   "detector": "regex"
+  },
+  {
+   "rule": "py-rsa-keygen",
+   "classification": "quantum-vulnerable",
+   "location": "paramiko/rsakey.py",
+   "line": 184,
+   "detector": "ast"
+  }
+ ]
+}

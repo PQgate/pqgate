@@ -1,0 +1,14 @@
+__pycache__/
+*.pyc
+.pytest_cache/
+testdata/
+dist/
+*.sarif
+pqgate-cbom.json
+cbom.json
+
+# Signing keys never belong in a repository.
+.pqgate-keys/
+
+# Your own trust store and license are local, not ours to ship.
+.pqgate/

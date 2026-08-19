@@ -1,0 +1,125 @@
+# FIPS 140-2 / 140-3 cryptographic module posture (SC-12, IA-7).
+#
+# WHAT IS HERE: the stable, durable fact — which distribution of a library is the
+# validated module and which is the general-purpose one. Shipping `bcprov` when your
+# ATO cites BouncyCastle FIPS is a finding no algorithm scan can produce.
+#
+# WHAT IS NOT HERE, DELIBERATELY: certificate numbers, validation dates and sunset
+# dates. Those change continuously and are authoritative only in the CMVP's own
+# export. Bundling a stale copy would let PQgate assert a certificate is current
+# when it has moved to the historical list — the exact failure this feature exists to
+# prevent. Load them yourself:
+#
+#     pqgate cmvp import validated-modules.json
+#
+# Until an export is imported, module findings report validation posture only, and
+# certificate status reads "unverified" rather than guessing.
+#
+# Context worth knowing: CMVP stopped accepting new FIPS 140-2 submissions in
+# September 2021, and 140-2 certificates move to the historical list five years after
+# validation. Check your own certificates against the current CMVP list.
+version: 1
+# Pack metadata. `pqgate rules` reports the age, and a scan emits a NOTE
+# once a pack is stale - rules go out of date because the guidance under them
+# moves, and a stale pack reports clean.
+pack:
+  name: cmvp
+  description: Cryptographic module validation posture
+  released: 2026-08-19
+modules:
+  bcprov:
+    name: Bouncy Castle general-purpose provider
+    vendor: Legion of the Bouncy Castle
+    validated: false
+    note: >-
+      The general-purpose provider is not the validated module. Programmes that cite
+      BouncyCastle FIPS in their ATO must ship bc-fips, not bcprov.
+    instead_of: bc-fips
+
+  bc-fips:
+    name: Bouncy Castle FIPS Java API (BC-FJA)
+    vendor: Legion of the Bouncy Castle
+    validated: true
+    standard: FIPS 140-2/140-3
+    note: Confirm the certificate covers your exact BC-FJA version and is not historical.
+
+  openssl-generic:
+    name: OpenSSL (no FIPS provider active)
+    vendor: OpenSSL Project
+    validated: false
+    note: >-
+      OpenSSL 3.x is only operating in a validated boundary when the FIPS provider is
+      loaded and default properties request it. Presence of the library proves nothing.
+    instead_of: openssl-fips-provider
+
+  openssl-fips-provider:
+    name: OpenSSL FIPS Provider
+    vendor: OpenSSL Project
+    validated: true
+    standard: FIPS 140-2/140-3
+    note: Validation covers the provider module only, not the surrounding libcrypto.
+
+  pyca-cryptography:
+    name: pyca/cryptography
+    vendor: PyCA
+    validated: false
+    note: >-
+      Not itself a validated module. It can operate against a validated OpenSSL FIPS
+      provider, in which case the certificate belongs to that provider.
+    instead_of: openssl-fips-provider
+
+  pycryptodome:
+    name: PyCryptodome
+    vendor: Legrandin
+    validated: false
+    note: Pure-Python and C primitives with no CMVP validation. Not usable inside a FIPS boundary.
+
+  go-stdlib-crypto:
+    name: Go standard library crypto
+    vendor: Google
+    validated: false
+    note: >-
+      Stock Go crypto is not validated. A validated boundary requires a FIPS-enabled
+      build (GOFIPS140, or the BoringCrypto variant).
+    instead_of: go-fips-build
+
+  go-fips-build:
+    name: Go FIPS-enabled build
+    vendor: Google
+    validated: true
+    standard: FIPS 140-3
+    note: Validation applies to the specific module version selected at build time.
+
+  liboqs:
+    name: liboqs
+    vendor: Open Quantum Safe
+    validated: false
+    note: >-
+      Research-grade PQC implementations. Correct algorithms for CNSA 2.0, but no CMVP
+      validation — an important distinction when the requirement is FIPS 140-3 and not
+      merely ML-KEM-1024.
+
+  dilithium-py:
+    name: dilithium-py
+    vendor: Giacomo Pope
+    validated: false
+    note: >-
+      Pure-Python ML-DSA, described by its own authors as educational rather than
+      production software. Not a cryptographic module in any sense a programme office
+      accepts. PQgate ships it as a development signing backend only, and the FIPS
+      profiles refuse it.
+    instead_of: liboqs
+
+  kyber-py:
+    name: kyber-py
+    vendor: Giacomo Pope
+    validated: false
+    note: Pure-Python ML-KEM, educational. Same caveat as dilithium-py.
+    instead_of: liboqs
+
+  wolfcrypt-fips:
+    name: wolfCrypt FIPS
+    vendor: wolfSSL
+    validated: true
+    standard: FIPS 140-2/140-3
+    note: Confirm the certificate covers your operating environment, not just the version.

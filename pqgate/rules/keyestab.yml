@@ -1,0 +1,91 @@
+# SP 800-56A - Pair-wise key establishment using discrete logarithm cryptography
+# SP 800-56B - Pair-wise key establishment using integer factorisation cryptography
+# SP 800-56C - Key derivation from a shared secret
+#
+# SC-12 evidence. These are bright-line rules: the scheme is either on the approved
+# list or it is not, and a shared secret used without an approved KDF is a defect
+# independent of which curve produced it.
+version: 1
+# Pack metadata. `pqgate rules` reports the age, and a scan emits a NOTE
+# once a pack is stale - rules go out of date because the guidance under them
+# moves, and a stale pack reports clean.
+pack:
+  name: keyestab
+  description: Key establishment, SP 800-56A/B/C (SC-12)
+  released: 2026-08-19
+rules:
+  # ---------------- Python ----------------
+  - id: py-rsa-pkcs1v15-encrypt
+    lang: [".py"]
+    regex: '\.encrypt\s*\([^)]*padding\.PKCS1v15\s*\(|padding\.PKCS1v15\s*\(\s*\)\s*\)\s*(?=.*encrypt)'
+    class: keyestab-not-approved
+    controls: [SC-12, SC-13]
+    standards: ["SP 800-56B"]
+    message: RSA PKCS#1 v1.5 encryption is not an approved key-transport scheme
+    remediation: Use OAEP (KTS-OAEP) for key transport; PKCS#1 v1.5 remains approved only for legacy signature verification.
+
+  - id: py-ecdh-raw-secret
+    lang: [".py"]
+    regex: '\.exchange\s*\(\s*ec\.ECDH\s*\(\s*\)'
+    class: keyestab-not-approved
+    controls: [SC-12]
+    standards: ["SP 800-56A", "SP 800-56C"]
+    message: ECDH shared secret - must pass through an approved KDF before use as a key
+    remediation: Derive with HKDF or ConcatKDF per SP 800-56C; never use Z directly as key material.
+    ast: { calls: ["exchange"] }
+
+  - id: py-dh-raw-secret
+    lang: [".py"]
+    regex: '\.exchange\s*\(\s*peer_public_key\s*\)|dh\.DHParameterNumbers'
+    class: keyestab-not-approved
+    controls: [SC-12]
+    standards: ["SP 800-56A", "SP 800-56C"]
+    message: Finite-field DH shared secret - must pass through an approved KDF
+    remediation: Derive with an SP 800-56C KDF, and prefer an approved ECC or PQC scheme.
+
+  - id: py-static-ecdh-key
+    lang: [".py"]
+    regex: '(?i)STATIC_(EC)?DH_(PRIVATE_)?KEY|reuse_ephemeral'
+    class: keyestab-not-approved
+    controls: [SC-12]
+    standards: ["SP 800-56A"]
+    message: Static key reuse in an ephemeral key-establishment scheme
+    remediation: Generate a fresh ephemeral key per key-establishment transaction.
+
+  # ---------------- Go ----------------
+  - id: go-rsa-pkcs1v15-encrypt
+    lang: [".go"]
+    regex: 'rsa\.EncryptPKCS1v15\s*\('
+    class: keyestab-not-approved
+    controls: [SC-12, SC-13]
+    standards: ["SP 800-56B"]
+    message: RSA PKCS#1 v1.5 encryption is not an approved key-transport scheme
+    remediation: Use rsa.EncryptOAEP for key transport.
+
+  - id: go-ecdh-raw-secret
+    lang: [".go"]
+    regex: '\.ECDH\s*\(|curve\.ScalarMult\s*\('
+    class: keyestab-not-approved
+    controls: [SC-12]
+    standards: ["SP 800-56A", "SP 800-56C"]
+    message: ECDH shared secret - must pass through an approved KDF before use as a key
+    remediation: Pass the shared secret through hkdf.New with an approved hash.
+
+  # ---------------- Java ----------------
+  - id: java-rsa-pkcs1v15-encrypt
+    lang: [".java"]
+    regex: 'getInstance\s*\(\s*"RSA/(ECB|None)/PKCS1Padding"'
+    class: keyestab-not-approved
+    controls: [SC-12, SC-13]
+    standards: ["SP 800-56B"]
+    message: RSA PKCS#1 v1.5 encryption is not an approved key-transport scheme
+    remediation: Use RSA/ECB/OAEPWithSHA-384AndMGF1Padding.
+
+  - id: java-ecdh-raw-secret
+    lang: [".java"]
+    regex: 'generateSecret\s*\(\s*\)'
+    class: keyestab-not-approved
+    controls: [SC-12]
+    standards: ["SP 800-56A", "SP 800-56C"]
+    message: KeyAgreement.generateSecret() returns a raw shared secret
+    remediation: Derive key material from the shared secret with an SP 800-56C KDF.

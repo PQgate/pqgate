@@ -1,0 +1,384 @@
+{
+ "commit": "33d33c75d9a09aac9a38aba282d0799880dd7224",
+ "expect": "crypto",
+ "findings": [
+  {
+   "rule": "go-ecdh-raw-secret",
+   "classification": "keyestab-not-approved",
+   "location": "kem/hybrid/ckem.go",
+   "line": 160,
+   "detector": "regex"
+  },
+  {
+   "rule": "go-pqc-mlkem",
+   "classification": "pqc-below-profile",
+   "location": "kem/hybrid/hybrid.go",
+   "line": 41,
+   "detector": "regex"
+  },
+  {
+   "rule": "go-pqc-mlkem",
+   "classification": "pqc-below-profile",
+   "location": "kem/hybrid/hybrid.go",
+   "line": 63,
+   "detector": "regex"
+  },
+  {
+   "rule": "go-pqc-mlkem",
+   "classification": "pqc-below-profile",
+   "location": "kem/hybrid/hybrid.go",
+   "line": 95,
+   "detector": "regex"
+  },
+  {
+   "rule": "go-pqc-mlkem",
+   "classification": "pqc-below-profile",
+   "location": "kem/hybrid/hybrid.go",
+   "line": 96,
+   "detector": "regex"
+  },
+  {
+   "rule": "go-pqc-mlkem",
+   "classification": "pqc-below-profile",
+   "location": "kem/hybrid/hybrid.go",
+   "line": 97,
+   "detector": "regex"
+  },
+  {
+   "rule": "go-pqc-mlkem",
+   "classification": "pqc-below-profile",
+   "location": "kem/hybrid/xkem_test.go",
+   "line": 36,
+   "detector": "regex"
+  },
+  {
+   "rule": "go-pqc-mlkem",
+   "classification": "pqc-below-profile",
+   "location": "kem/hybrid/xkem_test.go",
+   "line": 39,
+   "detector": "regex"
+  },
+  {
+   "rule": "go-pqc-mlkem",
+   "classification": "pqc-below-profile",
+   "location": "kem/hybrid/xkem_test.go",
+   "line": 53,
+   "detector": "regex"
+  },
+  {
+   "rule": "go-pqc-mlkem",
+   "classification": "pqc-below-profile",
+   "location": "kem/hybrid/xkem_test.go",
+   "line": 56,
+   "detector": "regex"
+  },
+  {
+   "rule": "go-pqc-mlkem",
+   "classification": "pqc-safe",
+   "location": "kem/mlkem/mlkem1024/kyber.go",
+   "line": 5,
+   "detector": "regex"
+  },
+  {
+   "rule": "go-pqc-mlkem",
+   "classification": "pqc-below-profile",
+   "location": "kem/mlkem/mlkem512/kyber.go",
+   "line": 5,
+   "detector": "regex"
+  },
+  {
+   "rule": "go-pqc-mlkem",
+   "classification": "pqc-below-profile",
+   "location": "kem/mlkem/mlkem768/kyber.go",
+   "line": 5,
+   "detector": "regex"
+  },
+  {
+   "rule": "go-pqc-mlkem",
+   "classification": "pqc-safe",
+   "location": "kem/schemes/schemes.go",
+   "line": 29,
+   "detector": "regex"
+  },
+  {
+   "rule": "go-pqc-mlkem",
+   "classification": "pqc-below-profile",
+   "location": "kem/schemes/schemes.go",
+   "line": 30,
+   "detector": "regex"
+  },
+  {
+   "rule": "go-pqc-mlkem",
+   "classification": "pqc-below-profile",
+   "location": "kem/schemes/schemes.go",
+   "line": 31,
+   "detector": "regex"
+  },
+  {
+   "rule": "go-pqc-mlkem",
+   "classification": "pqc-below-profile",
+   "location": "kem/schemes/schemes.go",
+   "line": 45,
+   "detector": "regex"
+  },
+  {
+   "rule": "go-pqc-mlkem",
+   "classification": "pqc-below-profile",
+   "location": "kem/schemes/schemes.go",
+   "line": 46,
+   "detector": "regex"
+  },
+  {
+   "rule": "go-pqc-mlkem",
+   "classification": "pqc-safe",
+   "location": "kem/schemes/schemes.go",
+   "line": 47,
+   "detector": "regex"
+  },
+  {
+   "rule": "go-pqc-mlkem",
+   "classification": "pqc-below-profile",
+   "location": "kem/schemes/schemes.go",
+   "line": 53,
+   "detector": "regex"
+  },
+  {
+   "rule": "go-pqc-mlkem",
+   "classification": "pqc-below-profile",
+   "location": "kem/xwing/scheme.go",
+   "line": 9,
+   "detector": "regex"
+  },
+  {
+   "rule": "go-pqc-mlkem",
+   "classification": "pqc-below-profile",
+   "location": "kem/xwing/scheme.go",
+   "line": 96,
+   "detector": "regex"
+  },
+  {
+   "rule": "go-pqc-mlkem",
+   "classification": "pqc-below-profile",
+   "location": "kem/xwing/xwing.go",
+   "line": 16,
+   "detector": "regex"
+  },
+  {
+   "rule": "go-pqc-mlkem",
+   "classification": "pqc-below-profile",
+   "location": "kem/xwing/xwing.go",
+   "line": 22,
+   "detector": "regex"
+  },
+  {
+   "rule": "go-pqc-mlkem",
+   "classification": "pqc-below-profile",
+   "location": "kem/xwing/xwing.go",
+   "line": 29,
+   "detector": "regex"
+  },
+  {
+   "rule": "go-pqc-mlkem",
+   "classification": "pqc-below-profile",
+   "location": "kem/xwing/xwing.go",
+   "line": 55,
+   "detector": "regex"
+  },
+  {
+   "rule": "go-pqc-mlkem",
+   "classification": "pqc-below-profile",
+   "location": "kem/xwing/xwing.go",
+   "line": 90,
+   "detector": "regex"
+  },
+  {
+   "rule": "go-pqc-mlkem",
+   "classification": "pqc-below-profile",
+   "location": "kem/xwing/xwing.go",
+   "line": 91,
+   "detector": "regex"
+  },
+  {
+   "rule": "go-pqc-mlkem",
+   "classification": "pqc-below-profile",
+   "location": "kem/xwing/xwing.go",
+   "line": 114,
+   "detector": "regex"
+  },
+  {
+   "rule": "go-pqc-mlkem",
+   "classification": "pqc-below-profile",
+   "location": "kem/xwing/xwing.go",
+   "line": 123,
+   "detector": "regex"
+  },
+  {
+   "rule": "go-pqc-mlkem",
+   "classification": "pqc-below-profile",
+   "location": "kem/xwing/xwing.go",
+   "line": 248,
+   "detector": "regex"
+  },
+  {
+   "rule": "go-pqc-mlkem",
+   "classification": "pqc-below-profile",
+   "location": "kem/xwing/xwing.go",
+   "line": 259,
+   "detector": "regex"
+  },
+  {
+   "rule": "go-pqc-mlkem",
+   "classification": "pqc-below-profile",
+   "location": "kem/xwing/xwing.go",
+   "line": 262,
+   "detector": "regex"
+  },
+  {
+   "rule": "go-pqc-mlkem",
+   "classification": "pqc-below-profile",
+   "location": "kem/xwing/xwing.go",
+   "line": 278,
+   "detector": "regex"
+  },
+  {
+   "rule": "go-pqc-mlkem",
+   "classification": "pqc-below-profile",
+   "location": "kem/xwing/xwing.go",
+   "line": 281,
+   "detector": "regex"
+  },
+  {
+   "rule": "go-pqc-mlkem",
+   "classification": "pqc-below-profile",
+   "location": "kem/xwing/xwing.go",
+   "line": 286,
+   "detector": "regex"
+  },
+  {
+   "rule": "go-pqc-mlkem",
+   "classification": "pqc-below-profile",
+   "location": "kem/xwing/xwing.go",
+   "line": 306,
+   "detector": "regex"
+  },
+  {
+   "rule": "go-pqc-mlkem",
+   "classification": "pqc-below-profile",
+   "location": "kem/xwing/xwing.go",
+   "line": 307,
+   "detector": "regex"
+  },
+  {
+   "rule": "go-ed25519",
+   "classification": "quantum-vulnerable",
+   "location": "sign/ed25519/ed25519_test.go",
+   "line": 44,
+   "detector": "regex"
+  },
+  {
+   "rule": "go-ed25519",
+   "classification": "quantum-vulnerable",
+   "location": "sign/ed25519/ed25519_test.go",
+   "line": 63,
+   "detector": "regex"
+  },
+  {
+   "rule": "go-ed25519",
+   "classification": "quantum-vulnerable",
+   "location": "sign/ed25519/ed25519_test.go",
+   "line": 79,
+   "detector": "regex"
+  },
+  {
+   "rule": "go-ed25519",
+   "classification": "quantum-vulnerable",
+   "location": "sign/ed25519/ed25519_test.go",
+   "line": 93,
+   "detector": "regex"
+  },
+  {
+   "rule": "go-ed25519",
+   "classification": "quantum-vulnerable",
+   "location": "sign/ed25519/extra_test.go",
+   "line": 119,
+   "detector": "regex"
+  },
+  {
+   "rule": "go-ed25519",
+   "classification": "quantum-vulnerable",
+   "location": "sign/ed25519/extra_test.go",
+   "line": 127,
+   "detector": "regex"
+  },
+  {
+   "rule": "go-ed25519",
+   "classification": "quantum-vulnerable",
+   "location": "sign/ed25519/extra_test.go",
+   "line": 148,
+   "detector": "regex"
+  },
+  {
+   "rule": "go-ed25519",
+   "classification": "quantum-vulnerable",
+   "location": "sign/ed25519/extra_test.go",
+   "line": 156,
+   "detector": "regex"
+  },
+  {
+   "rule": "go-ed25519",
+   "classification": "quantum-vulnerable",
+   "location": "sign/ed25519/extra_test.go",
+   "line": 171,
+   "detector": "regex"
+  },
+  {
+   "rule": "go-ed25519",
+   "classification": "quantum-vulnerable",
+   "location": "sign/ed25519/extra_test.go",
+   "line": 178,
+   "detector": "regex"
+  },
+  {
+   "rule": "go-ed25519",
+   "classification": "quantum-vulnerable",
+   "location": "sign/ed25519/extra_test.go",
+   "line": 192,
+   "detector": "regex"
+  },
+  {
+   "rule": "go-ed25519",
+   "classification": "quantum-vulnerable",
+   "location": "sign/ed25519/extra_test.go",
+   "line": 212,
+   "detector": "regex"
+  },
+  {
+   "rule": "go-ed25519",
+   "classification": "quantum-vulnerable",
+   "location": "sign/ed25519/extra_test.go",
+   "line": 234,
+   "detector": "regex"
+  },
+  {
+   "rule": "dep-github.com/cloudflare/circl",
+   "classification": "pqc-safe",
+   "location": "sign/internal/dilithium/asm/go.mod",
+   "line": 1,
+   "detector": "regex"
+  },
+  {
+   "rule": "dep-github.com/cloudflare/circl",
+   "classification": "pqc-safe",
+   "location": "sign/internal/dilithium/asm/go.mod",
+   "line": 6,
+   "detector": "regex"
+  },
+  {
+   "rule": "dep-github.com/cloudflare/circl",
+   "classification": "pqc-safe",
+   "location": "sign/internal/dilithium/asm/go.mod",
+   "line": 15,
+   "detector": "regex"
+  }
+ ]
+}

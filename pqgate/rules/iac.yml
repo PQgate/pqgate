@@ -1,0 +1,67 @@
+# SP 800-57 - Recommendation for Key Management, applied to infrastructure-as-code.
+#
+# Crypto periods, rotation and key strength are operational properties, and in a modern
+# estate they are declared in Terraform and Kubernetes rather than agreed in a document.
+# That makes the SC-12 lifecycle requirements statically checkable for the first time.
+version: 1
+# Pack metadata. `pqgate rules` reports the age, and a scan emits a NOTE
+# once a pack is stale - rules go out of date because the guidance under them
+# moves, and a stale pack reports clean.
+pack:
+  name: iac
+  description: Infrastructure-as-code, SP 800-57 key lifecycle
+  released: 2026-08-19
+rules:
+  - id: iac-kms-rotation-disabled
+    files: ["*.tf", "*.tf.json", "*.hcl"]
+    regex: '(?i)enable_key_rotation\s*=\s*false'
+    class: keymgmt-no-rotation
+    controls: [SC-12]
+    standards: ["SP 800-57"]
+    message: KMS key rotation explicitly disabled - no crypto period enforced
+    remediation: Set enable_key_rotation = true and record the crypto period in the key policy.
+
+  - id: iac-kms-rotation-absent
+    files: ["*.tf"]
+    regex: '(?i)resource\s+"aws_kms_key"'
+    class: keymgmt-no-rotation
+    controls: [SC-12]
+    standards: ["SP 800-57"]
+    message: KMS key declared - confirm rotation and crypto period are set
+    remediation: Every aws_kms_key needs an explicit enable_key_rotation and a documented crypto period.
+
+  - id: iac-key-spec-classical
+    files: ["*.tf", "*.tf.json", "*.hcl"]
+    regex: '(?i)(customer_master_key_spec|key_spec)\s*=\s*"?(RSA_2048|RSA_3072|RSA_4096|ECC_NIST_P\d+|ECC_SECG_P256K1)'
+    class: quantum-vulnerable
+    controls: [SC-12, SC-13]
+    standards: ["CNSA 2.0", "SP 800-57"]
+    message: Managed key provisioned with a quantum-vulnerable algorithm
+    remediation: Record as migration debt; move to a PQC-capable key type or an external HSM-backed key.
+
+  - id: iac-tls-policy-weak
+    files: ["*.tf", "*.tf.json", "*.hcl"]
+    regex: '(?i)ssl_policy\s*=\s*"[^"]*(2015|2016|2017|TLS-1-0|TLS-1-1)[^"]*"'
+    class: sym-below-profile
+    controls: [SC-13]
+    standards: ["SP 800-52r2"]
+    message: Load-balancer TLS policy is a deprecated predefined policy
+    remediation: Move to a TLS 1.3 policy restricted to AES-256-GCM suites.
+
+  - id: iac-secret-in-plaintext
+    files: ["*.tf", "*.tf.json", "*.hcl", "*.tfvars"]
+    regex: '(?i)^\s*(secret|password|private_key|encryption_key)\s*=\s*"[^"$\{][^"]{12,}"'
+    class: keygen-hardcoded
+    controls: [SC-12, SC-28]
+    standards: ["SP 800-57", "SP 800-133"]
+    message: Key or secret material committed in infrastructure code
+    remediation: Reference a secret manager; never inline key material in state-tracked files.
+
+  - id: iac-k8s-secret-plaintext
+    files: ["*.yaml", "*.yml"]
+    regex: '(?i)^\s*kind:\s*Secret\s*$'
+    class: keymgmt-below-strength
+    controls: [SC-12, SC-28]
+    standards: ["SP 800-57"]
+    message: Kubernetes Secret manifest - base64 is encoding, not encryption
+    remediation: Confirm encryption at rest is enabled for etcd, or use an external secret store.

@@ -1,0 +1,22 @@
+version: 1
+profile: cnsa-2.0
+
+policies:
+  - id: no-new-rsa
+    description: Block introduction of new RSA
+    match: { algorithm: RSA }
+    scope: all-code
+    action: block
+
+exceptions:
+  - policy: no-new-rsa
+    paths: ["legacy/**"]
+    reason: "Vendor constraint; migration ticket SEC-142"
+    expires: 2027-06-30
+  - policy: cnsa-2.0
+    paths: ["legacy/old_hash.py"]
+    reason: "Expired exception test"
+    expires: 2025-01-01
+
+reporting:
+  fail_build_on: block
